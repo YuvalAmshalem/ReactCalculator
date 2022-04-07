@@ -113,22 +113,22 @@ class Display extends React.Component{
 
     }
     powFunc(first,second){
-        return (parseInt(first)**parseInt(second)).toString();
+        return (parseFloat(first)**parseFloat(second)).toString();
     }
     percentFunc(first,second){
-        return ((parseInt(second)/parseInt(first))*100).toString();
+        return ((parseFloat(second)/parseFloat(first))*100).toString();
     }
     mulFunc(first,second){
-        return (parseInt(first)*parseInt(second)).toString();
+        return (parseFloat(first)*parseFloat(second)).toString();
     }
     divFunc(first,second){
-        return (parseInt(first)/parseInt(second)).toString();
+        return (parseFloat(first)/parseFloat(second)).toString();
     }
     addFunc(first,second){
-        return (parseInt(first)+parseInt(second)).toString();
+        return (parseFloat(first)+parseFloat(second)).toString();
     }
     subFunc(first,second){
-        return (parseInt(first)-parseInt(second)).toString();
+        return (parseFloat(first)-parseFloat(second)).toString();
     }
     
     handleInput(e){
@@ -163,30 +163,66 @@ class CalcBody extends React.Component{
         this.changeOutput=props.onChange;
         this.buttonClick=this.buttonClick.bind(this);
         this.line=[];
+        this.afterDecimal=null;
     }
     buttonClick(event){ 
         //update current line and check if calculation is needed. also update the UI.
 
-        if(!isNaN(event.target.value)){
-            if (!isNaN(this.line[this.line.length-1])){
-                let tempLast=parseInt(this.line[this.line.length-1]);
-                tempLast*=10;
-                tempLast+=parseInt(event.target.value);
-                this.line[this.line.length-1]=tempLast.toString();
+        if(!isNaN(event.target.value)){ //if input is a number
+            if (!isNaN(this.line[this.line.length-1])){ //if last line element is a number
+                //ADD TEST: is the last number after a decimal point?
+                let tempLast=parseFloat(this.line.pop());
+                if(this.afterDecimal!==null){
+                    console.log("after decimal: "+this.afterDecimal);
+                    this.afterDecimal*=10;
+                    this.afterDecimal+=parseInt(event.target.value);
+                    console.log("after decimal: "+this.afterDecimal+" tempLast= "+tempLast);
+                    let newLast=tempLast+parseFloat("0."+this.afterDecimal.toString());
+                    console.log("newLast= "+newLast);
+                    this.line.push(newLast.toString());
+                }else{
+                    tempLast*=10;
+                    tempLast+=parseInt(event.target.value);
+                    this.line[this.line.length-1]=tempLast.toString();
+                }
             } else{
                 this.line.push(event.target.value);
             }
+        } else if(event.target.value==="."){
+            if(this.afterDecimal!==null||isNaN(this.line[this.line.length-1])){
+                alert("Oops! Illegal click");
+                return;
+            }
+            let tempNumber=this.line.pop();
+            this.afterDecimal=0;
+            console.log("tempNumber= "+tempNumber);
+            this.line.push((parseFloat(tempNumber)).toString());
+
         } else{
         switch (event.target.value){
             case('DEL'):
                 this.line=[];
+                this.afterDecimal=null;
                 break;
             case('C'):
-                if(this.line!==[]){
+                if(this.line[this.line.length-1]==="."){
+                    this.afterDecimal=null;
+                }
+                if(this.afterDecimal!==null){
+                    this.afterDecimal/=10;
+                    let tempLast=parseInt(this.line.pop());
+                    this.line.push((tempLast+(parseInt(this.afterDecimal)/10*this.afterDecimal.length)).toString());
+                }
+                else if(this.line!==[]){
                     this.line.pop();
                 }
                 break;
             default://check if last insert was an action- if so, tell the user it's forbidden and don't register it to the line
+                if(isNaN(this.line[this.line.length-1])||this.line[this.line.length-1]==="."){
+                    alert("Oops! Illegal click");
+                    return;
+                }
+                this.afterDecimal=null;
                 this.line.push(event.target.value);
         } }
         this.changeOutput(this.line);
@@ -223,6 +259,7 @@ class Buttons extends React.Component{
                 <Button click={this.updateClick} value= "8"/>
                 <Button click={this.updateClick} value= "9"/>
                 <Button click={this.updateClick} value= "0"/>
+                <Button click={this.updateClick} value= "."/>
                 <Button click={this.updateClick} value= "+"/>
                 <Button click={this.updateClick} value= "-"/>
                 <Button click={this.updateClick} value= "x"/>
