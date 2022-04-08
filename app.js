@@ -137,6 +137,11 @@ class Display extends React.Component{
     }
     //make input work with keyboard too.
 
+    toFixed(value, precision) {
+        var power = Math.pow(10, precision || 0);
+        return String(Math.round(value * power) / power);
+    }
+
     render(){
         this.line=this.props.line;// may be problematic with the input thingy 
         console.log("rendering display- line is: "+this.line);
@@ -147,7 +152,7 @@ class Display extends React.Component{
         return(
             <div>
                 <input type="text" value={strRepr} onChange={e=>this.handleInput(e)}></input>
-                <text>{(this.line ? " = " : '')+this.calculateResult(JSON.parse(JSON.stringify(this.line))).toFixed(5)}</text>
+                <text>{(this.line ? " = " : '')+this.toFixed(this.calculateResult(JSON.parse(JSON.stringify(this.line))),5)}</text>
             </div>
         );
     }
