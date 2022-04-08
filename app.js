@@ -50,7 +50,7 @@ class Display extends React.Component{
         }
 
         if(count['(']!==count[')']){ //check for opening and closing brackets
-            return null;
+            return " ";
         }
         let result;
 
@@ -98,7 +98,7 @@ class Display extends React.Component{
             secondIndex=lineToSolve.indexOf(actionPair[1]);
             currentIndex= firstIndex>secondIndex ? firstIndex : secondIndex;
             if (currentIndex===lineToSolve.length-1){ //if equation is illegal
-                return null;
+                return " ";
             }
             while(currentIndex!==-1){ //while the highest ordered action still exists in line:
                 x=lineToSolve[currentIndex];
@@ -135,9 +135,6 @@ class Display extends React.Component{
         console.log("handle input: event is "+e);
         this.line=e.target.value.split();
     }
-    //work on brackets- multiple brackets and check if inner brackets need any treatment.
-    //make sure decimal points are covered.
-    //make sure input can't be illegal such as actions one after the other or without numbers around.
     //make input work with keyboard too.
 
     render(){
@@ -150,7 +147,7 @@ class Display extends React.Component{
         return(
             <div>
                 <input type="text" value={strRepr} onChange={e=>this.handleInput(e)}></input>
-                <text>{(this.line ? " = " : '')+this.calculateResult(JSON.parse(JSON.stringify(this.line)))}</text>
+                <text>{(this.line ? " = " : '')+this.calculateResult(JSON.parse(JSON.stringify(this.line))).toFixed(5)}</text>
             </div>
         );
     }
@@ -170,23 +167,19 @@ class CalcBody extends React.Component{
 
         if(!isNaN(event.target.value)){ //if input is a number
             if (!isNaN(this.line[this.line.length-1])){ //if last line element is a number
-                //ADD TEST: is the last number after a decimal point?
                 let tempLast=parseFloat(this.line.pop());
-                if(this.afterDecimal!==null){
-                    console.log("after decimal: "+this.afterDecimal);
+                if(this.afterDecimal!==null){ //is the last number after a decimal point?
                     this.afterDecimal*=10;
                     this.afterDecimal+=parseInt(event.target.value);
-                    console.log("after decimal: "+this.afterDecimal+" tempLast= "+tempLast);
-                    let newLast=tempLast+parseFloat("0."+this.afterDecimal.toString());
-                    console.log("newLast= "+newLast);
-                    this.line.push(newLast.toString());
-                }else{
+                    let newLast=parseFloat(`${parseInt(tempLast)}.`+this.afterDecimal.toString());//create float using strings
+                    this.line.push(newLast.toString()); //push float according to decimal point
+                }else{ //just an extension of previous int
                     tempLast*=10;
                     tempLast+=parseInt(event.target.value);
-                    this.line[this.line.length-1]=tempLast.toString();
+                    this.line.push(tempLast.toString()); //add current number to existing number in the writing
                 }
             } else{
-                this.line.push(event.target.value);
+                this.line.push(event.target.value); //just insert the number after action/brackets
             }
         } else if(event.target.value==="."){
             if(this.afterDecimal!==null||isNaN(this.line[this.line.length-1])){
@@ -195,7 +188,6 @@ class CalcBody extends React.Component{
             }
             let tempNumber=this.line.pop();
             this.afterDecimal=0;
-            console.log("tempNumber= "+tempNumber);
             this.line.push((parseFloat(tempNumber)).toString());
 
         } else{
@@ -205,20 +197,53 @@ class CalcBody extends React.Component{
                 this.afterDecimal=null;
                 break;
             case('C'):
-                if(this.line[this.line.length-1]==="."){
+                console.log("after decimal: "+this.afterDecimal+" line: "+this.line);
+                if(this.afterDecimal<10){   
                     this.afterDecimal=null;
+                    let tempLast=this.line.pop();
+                    console.log(tempLast);
+                    this.line.push(parseInt(tempLast));
                 }
-                if(this.afterDecimal!==null){
+                else if(this.afterDecimal!==null){
                     this.afterDecimal/=10;
                     let tempLast=parseInt(this.line.pop());
-                    this.line.push((tempLast+(parseInt(this.afterDecimal)/10*this.afterDecimal.length)).toString());
+                    this.line.push((parseFloat(`${parseInt(tempLast)}.`+parseInt(this.afterDecimal).toString())).toString());
                 }
                 else if(this.line!==[]){
                     this.line.pop();
                 }
                 break;
+            case('('):
+                if(this.afterDecimal===0 ){
+                    alert("Oops! Illegal click");
+                    return;
+                }
+                this.afterDecimal=null;
+                if(this.line[this.line.length-1]=== ')' ){ //bracket to bracket multiplication
+                    this.line.push('x');
+                    
+                }
+                this.line.push('(');
+                break;
+            case(')'):
+                let count1=0;
+                let count2=0;
+                for(let x of this.line){
+                    if(x==='('){
+                        count1++;
+                    } else if(x===')'){
+                        count2++;
+                    }
+                }
+                if( count1<=count2 || this.afterDecimal===0 ){
+                    alert("Oops! Illegal click");
+                    return;
+                }
+                this.afterDecimal=null;
+                this.line.push(')');
+                break;
             default://check if last insert was an action- if so, tell the user it's forbidden and don't register it to the line
-                if(isNaN(this.line[this.line.length-1])||this.line[this.line.length-1]==="."){
+                if(isNaN(this.line[this.line.length-1])){
                     alert("Oops! Illegal click");
                     return;
                 }
